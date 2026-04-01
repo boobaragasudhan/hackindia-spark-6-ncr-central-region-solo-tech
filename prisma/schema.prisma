@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Represents a node/circle in your D3 Graph
+model Topic {
+  id          String         @id @default(uuid())
+  label       String
+  resources   Resource[] 
+  progress    UserProgress[] // Track user progress on this topic
+}
+
+// Represents the links between nodes (e.g. HTML -> CSS)
+model GraphLink {
+  id       String @id @default(uuid())
+  sourceId String
+  targetId String
+}
+
+// Represents the actual study resources (Videos, Articles)
+model Resource {
+  id       String @id @default(uuid())
+  title    String
+  url      String
+  category String // "Intro" | "Other" | "Interesting"
+  topicId  String
+  topic    Topic  @relation(fields: [topicId], references: [id])
+  progress UserProgress[] // Track status of specific resources
+}
+
+// User model for Google OAuth login + progress tracking
+model User {
+  id        String         @id @default(uuid())
+  name      String?
+  email     String?        @unique
+  image     String?
+  googleId  String?        @unique
+  progress  UserProgress[]
+}
+
+// Track if a user is "To Learn", "Learning", or "Learned" for a specific resource
+model UserProgress {
+  id         String   @id @default(uuid())
+  userId     String
+  resourceId String
+  topicId    String
+  status     String   // "To Learn", "Learning", "Learned"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+  resource   Resource @relation(fields: [resourceId], references: [id])
+  topic      Topic    @relation(fields: [topicId], references: [id])
+
+  @@unique([userId, resourceId]) // Ensure one status per user per resource
+}
